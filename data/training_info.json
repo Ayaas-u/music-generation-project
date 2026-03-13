@@ -1,0 +1,12 @@
+{
+  "final_train_loss": 0.3375651240348816,
+  "final_val_loss": 0.3138020634651184,
+  "epochs": 50,
+  "batch_size": 8,
+  "latent_dim": 16,
+  "sequence_shape": [
+    10,
+    6,
+    128
+  ]
+}
