@@ -1,0 +1,9 @@
+{
+  "epochs": 200,
+  "batch_size": 8,
+  "learning_rate": 0.001,
+  "beta": 0.005,
+  "final_total_loss": 0.2846172831229091,
+  "final_recon_loss": 0.28057894504151515,
+  "final_kl_loss": 0.8076675626650782
+}

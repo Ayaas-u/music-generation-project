@@ -40,12 +40,13 @@ def pianoroll_to_midi(pianoroll, output_path, bpm=120, tpq=480):
 
     mid.save(output_path)
 
-def generate_samples(num_samples=5):
+def generate_samples(num_samples=15, save_numpy=True):
     # Set up absolute paths
     script_path = Path(__file__).resolve()
     project_root = script_path.parent.parent
     model_path = project_root / 'data' / 'lstm_autoencoder.pth'
     output_dir = project_root / 'data' / 'generated_samples'
+    numpy_output_path = project_root / 'data' / 'lstm_generated_samples.npy'
 
     if not model_path.exists():
         print(f"❌ Error: Could not find model at {model_path}")
@@ -59,27 +60,35 @@ def generate_samples(num_samples=5):
     model = LSTMAutoencoder(input_dim=6, hidden_dim=64, latent_dim=32).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Generating {num_samples} samples into {output_dir}...")
 
+    generated_samples = []
+
     with torch.no_grad():
         for i in range(num_samples):
-            #At first, the samples sounded like pianos because MIDI defaults to Channel 0.
-            #  I fixed this by routing the output to channel =9(which is for drums).
-            #  i realized the generated beats were same, so I multiplied the random z vector for more variety
-            z_random = torch.randn(1, 32).to(device) *3
-            
-            # Use only the decoder logic to turn z into a sequence
+            z_random = torch.randn(1, 32).to(device) * 3
+
+            # Decode latent vector into sequence
             z_expanded = model.from_latent(z_random).unsqueeze(1).repeat(1, 128, 1)
             reconstruction, _ = model.decoder(z_expanded)
             generated_roll = torch.sigmoid(model.output_layer(reconstruction))
-            
+
             sample_np = generated_roll.squeeze(0).cpu().numpy()
-            
+
+            # Save raw generated array for evaluation
+            generated_samples.append(sample_np)
+
             filename = output_dir / f"sample_{i+1}.mid"
             pianoroll_to_midi(sample_np, filename)
             print(f"  ✓ Saved {filename.name}")
+
+    if save_numpy:
+        generated_samples = np.array(generated_samples)
+        np.save(numpy_output_path, generated_samples)
+        print(f"✅ Saved NumPy samples to: {numpy_output_path}")
+        print(f"NumPy sample shape: {generated_samples.shape}")
 
 if __name__ == "__main__":
     generate_samples()

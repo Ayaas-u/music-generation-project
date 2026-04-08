@@ -1,0 +1,20 @@
+[
+  {
+    "model": "Real Dataset",
+    "avg_density": 0.184765625,
+    "avg_diversity": 0.0703125,
+    "avg_repetition": 0.7732283464566929
+  },
+  {
+    "model": "Random",
+    "avg_density": 0.18776041666666665,
+    "avg_diversity": 0.23125,
+    "avg_repetition": 0.30551181102362207
+  },
+  {
+    "model": "Markov",
+    "avg_density": 0.1903645833333333,
+    "avg_diversity": 0.1171875,
+    "avg_repetition": 0.552755905511811
+  }
+]

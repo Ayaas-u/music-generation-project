@@ -1,0 +1,32 @@
+[
+  {
+    "model": "Real Dataset",
+    "avg_density": 0.184765625,
+    "avg_diversity": 0.0703125,
+    "avg_repetition": 0.7732283464566929
+  },
+  {
+    "model": "Random Baseline",
+    "avg_density": 0.174609375,
+    "avg_diversity": 0.21015625,
+    "avg_repetition": 0.34960629921259834
+  },
+  {
+    "model": "Markov Baseline",
+    "avg_density": 0.18580729166666668,
+    "avg_diversity": 0.12265625,
+    "avg_repetition": 0.526771653543307
+  },
+  {
+    "model": "LSTM Autoencoder",
+    "avg_density": 0.18072916666666666,
+    "avg_diversity": 0.0125,
+    "avg_repetition": 0.9850393700787402
+  },
+  {
+    "model": "LSTM VAE",
+    "avg_density": 0.216015625,
+    "avg_diversity": 0.01328125,
+    "avg_repetition": 0.9811023622047245
+  }
+]
