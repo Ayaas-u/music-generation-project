@@ -1,0 +1,8 @@
+{
+  "num_saved_samples": 10,
+  "num_attempts": 11,
+  "generation_steps": 512,
+  "temperature": 1.1,
+  "top_k": 8,
+  "velocity": 115
+}

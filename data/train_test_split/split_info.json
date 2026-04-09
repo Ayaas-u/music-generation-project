@@ -1,0 +1,11 @@
+{
+  "dataset_path": "data\\groove_sequences.npy",
+  "total_samples": 5147,
+  "train_samples": 4117,
+  "val_samples": 515,
+  "test_samples": 515,
+  "split_type": "sequence_level_split",
+  "random_state": 42,
+  "split_ratio": "80/10/10",
+  "note": "The final processed dataset was already saved as pre-windowed sequences, so Task 3 uses a deterministic sequence-level split."
+}

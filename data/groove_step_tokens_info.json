@@ -1,0 +1,25 @@
+{
+  "input_shape": [
+    5147,
+    6,
+    64
+  ],
+  "output_shape": [
+    5147,
+    64
+  ],
+  "num_drums": 6,
+  "vocab_size_without_special_tokens": 64,
+  "bos_token": 64,
+  "pad_token": 65,
+  "total_vocab_size": 66,
+  "representation": "6-bit drum-step token",
+  "channel_order": [
+    "kick",
+    "snare",
+    "hihat",
+    "tom",
+    "crash",
+    "ride"
+  ]
+}
