@@ -165,4 +165,4 @@ survey_results/
 report/
   final_report.tex
   references.bib
-architecture_diagrams/
+  architecture_diagrams/
