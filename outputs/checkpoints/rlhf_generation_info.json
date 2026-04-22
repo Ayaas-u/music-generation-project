@@ -1,0 +1,20 @@
+{
+  "num_candidates_generated": 60,
+  "num_selected": 10,
+  "num_attempts": 175,
+  "generation_steps": 512,
+  "temperature": 0.8,
+  "top_k": 6,
+  "max_empty_bar_ratio": 0.2,
+  "max_kick_empty_bar_ratio": 0.35,
+  "max_kick_repetition_ratio": 0.4,
+  "source_checkpoint_keys": [
+    "model_state_dict",
+    "base_model",
+    "objective",
+    "equation",
+    "config",
+    "best_mean_reward",
+    "history"
+  ]
+}

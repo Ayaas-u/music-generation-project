@@ -1,0 +1,7 @@
+{
+  "num_original_sequences": 10,
+  "num_128_chunks_used": 40,
+  "density": 0.2337239533662796,
+  "diversity": 0.996875,
+  "repetition": 0.003125
+}

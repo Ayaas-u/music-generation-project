@@ -1,0 +1,3 @@
+model,num_samples,density,empty_step_ratio,repetition_ratio,diversity_pairwise,predicted_reward_z
+Transformer (before RLHF),10,0.1722005195915699,0.2263671875,0.03125,0.22000868055555556,0.0
+RLHF-tuned Transformer,10,0.19495442733168603,0.2876953125,0.04375,0.24614438657407411,2.91822795415972

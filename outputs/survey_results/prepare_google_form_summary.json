@@ -1,0 +1,11 @@
+{
+  "input_csv": "data\\survey_results\\google_form_raw.csv",
+  "output_csv": "data\\survey_results\\human_ratings.csv",
+  "num_rows": 100,
+  "num_participants": 10,
+  "num_samples": 10,
+  "participant_source_column": null,
+  "detected_sample_columns": {},
+  "unparsed_detected_columns": [],
+  "used_overall_preference": false
+}

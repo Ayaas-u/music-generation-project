@@ -1,0 +1,9 @@
+{
+  "num_participants": 10,
+  "num_samples": 10,
+  "num_rows": 100,
+  "reward_formula": "(groove_quality + coherence + variety) / 3",
+  "participant_normalization": "z-score per participant over raw_reward",
+  "aggregated_rewards_csv": "data\\survey_results\\aggregated_rewards.csv",
+  "participant_normalized_scores_csv": "data\\survey_results\\participant_normalized_scores.csv"
+}

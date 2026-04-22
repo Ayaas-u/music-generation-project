@@ -1,0 +1,402 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+\begin{document}
+
+\title{Symbolic Drum Groove Generation from MIDI Using Autoencoders, Transformers, and Preference Tuning}
+
+\author{\IEEEauthorblockN{Salvin Ibne Rafi}
+\IEEEauthorblockA{CS / Brac University \\
+Dhaka,Bangladesh \\
+salvin.rafi@gmail.com}}
+
+\maketitle
+
+\begin{abstract}
+This report presents a symbolic drum groove generation project using the Groove MIDI dataset. Four stages were explored: an LSTM Autoencoder, an LSTM Variational Autoencoder, a Transformer-based autoregressive generator, and a preference-based fine-tuning stage. The data was converted from MIDI into a six-channel drum piano-roll representation, and later tokenized for Transformer training. Results show that the Autoencoder and VAE could learn basic rhythmic structure, but the Transformer produced the strongest outputs in terms of diversity, coherence, and musical quality. A final RLHF-style stage was also implemented, although it did not outperform the Transformer baseline.
+\end{abstract}
+
+\begin{IEEEkeywords}
+MIDI, drum generation, LSTM autoencoder, variational autoencoder, Transformer, RLHF, symbolic music generation
+\end{IEEEkeywords}
+
+\section{Introduction}
+Music generation is an important application of deep learning because music is naturally sequential and structured over time. In symbolic music generation, the goal is not to synthesize raw audio directly, but to learn patterns from symbolic representations such as MIDI and then generate new musical sequences from that learned structure.
+
+In this project, the focus was on {multi genre drum groove generation} using symbolic MIDI data. Compared to full multi-instrument music, drum patterns are simpler to represent, but they still contain rich rhythmic structure, variation, repetition, timing, and style. This makes drum generation a good problem for comparing different sequence models.
+
+The project is divided into four tasks. Task 1 used an LSTM Autoencoder to compress and reconstruct drum patterns. Task 2 extended this model into a Variational Autoencoder (VAE) with KL-divergence regularization. Task 3 used a Transformer model trained on tokenized drum patterns. Task 4 applied reinforcement-style human preference tuning on top of the Transformer outputs. The main purpose of the project was not only to generate genre based drum patterns, but also to compare how different architectures behave on symbolic sequence generation.
+
+\section{Related Work}
+Deep learning has been used for symbolic music generation in several forms. Recurrent Neural Networks and LSTM-based architectures were among the earliest successful models because they can process sequential data over time and preserve temporal context. These models are especially useful when the output depends strongly on the previous sequence history.
+
+Autoencoder-based methods introduced another direction for music generation by learning compressed latent representations of musical sequences. A standard Autoencoder can reconstruct input sequences from a compact hidden representation, while a Variational Autoencoder (VAE) extends this idea by forcing the latent space to follow a probability distribution. This often improves sampling and variation in generated outputs.
+
+More recently, Transformer models have become highly effective in sequence generation because they can model long-range dependencies using self-attention instead of recurrent recurrence. This is particularly useful in music generation, where events may depend on patterns that occurred much earlier in the sequence. Inspired by these developments, this project compares LSTM-based latent models and Transformer-based autoregressive models for symbolic drum generation.
+
+\section{Dataset and Preprocessing}
+
+\subsection{Data Representation and Preprocessing}
+The Groove MIDI dataset was used as the source of drum performances. As MIDI files contain symbolic musical events such as note, velocity, and timing, the data was first converted into a structured numerical format suitable for neural networks.
+
+Each MIDI file was parsed and converted into a piano-roll representation. Instead of using all possible MIDI notes, the drum sounds were grouped into six categories:
+\begin{itemize}
+    \item Kick
+    \item Snare
+    \item Hi-Hat
+    \item Tom
+    \item Crash
+    \item Ride
+\end{itemize}
+
+Each drum pattern was represented as a 2D array of shape $(6 \times 128)$, where:
+\begin{itemize}
+    \item 6 is the number of drum categories
+    \item 128 is the number of time steps per sequence
+\end{itemize}
+Each element in this array can be either 0 or 1, which represents whether that drum is active at a given time step. The values were normalized between 0 and 1.
+
+For model training, the data was rearranged into the shape $(N, 128, 6)$ because LSTM works in the structure $(\text{batch}, \text{time}, \text{features})$. This format allows the LSTM model to process the sequence over time.
+
+This representation is similar to a time-based tokenization, where each time step acts as a token describing the drum state at that moment.
+
+\subsection{Additional Data Processing before Task 3}
+Task 3 used the same Groove MIDI drum dataset and the same basic piano-roll representation that was prepared in Task 1 and Task 2. So, a completely new preprocessing pipeline was not required. However, unlike the LSTM Autoencoder and VAE, the Transformer model was trained on a \textit{tokenized} version of the drum sequence instead of directly using the 2D drum array.
+
+In the earlier tasks, each sequence was stored as a binary drum piano-roll of shape $(6 \times 128)$, where:
+\begin{itemize}
+    \item 6 represents the six drum categories
+    \item 128 represents the number of time steps
+\end{itemize}
+
+For Task 3, each column of this $(6 \times 128)$ array was converted into a single integer token. In other words, at each time step, the on/off states of the six drums were read together and encoded as one token.
+
+For example, one time step was written as a 1D vector or array:
+\[
+[\text{Kick}, \text{Snare}, \text{HiHat}, \text{Tom}, \text{Crash}, \text{Ride}]
+\]
+
+If the drum activity at one time step is:
+\[
+[1,0,1,0,0,0]
+\]
+this means that only Kick and Hi-Hat are active. This binary pattern was converted into a single integer token using a 6-bit encoding rule.
+
+Since there are 6 binary drum channels, the total number of possible combinations is:
+\[
+2^6 = 64
+\]
+
+Therefore, each time step was represented by one token from 0 to 63. A special beginning-of-sequence token was also added during training. As a result, every drum sample of shape $(6 \times 128)$ was transformed into a 1D token sequence of length 128.
+
+This tokenization step was important because the Transformer predicts one token at a time. So instead of reconstructing the whole piano-roll directly, it learns how drum patterns evolve step by step over time.
+
+\subsection{Additional Data Preparation for Preference Tuning}
+Task 4 bypassed the need for a new MIDI pipeline by reusing existing symbolic drum representations. The process used the six-channel binary sequences and Transformer-ready tokens developed in earlier stages.
+
+Instead of re-processing raw MIDI, the effort shifted toward human feedback data and Transformer outputs. First, 10 generated Transformer drum samples were selected from the final Task 3 outputs. These samples were the same symbolic sequences that had already been produced by the Transformer model. Human listeners then rated these generated samples using criteria of groove quality, coherence, and variety on a scale of 1 to 5.
+
+After collecting the ratings, the scores were cleaned and organized into a structured table. Each row represented one participant's rating for one generated sample. Then the ratings for each sample were aggregated into a reward score. In this way, every selected Transformer output was paired with a corresponding human preference value.
+
+So, the preprocessing in Task 4 can be described as f{preference-data preparation}. The symbolic drum sequences remained the same as in Task 3, but an additional reward label was created for each selected generated sample. This reward label was then used for reinforcement-style fine-tuning.
+
+\section{Methodology}
+
+\subsection{Task 1: LSTM Autoencoder}
+
+\subsubsection{Model Structure}
+In Task 1, an LSTM Autoencoder was implemented to learn compressed representations of drum patterns.
+
+The model consists of two parts:
+\begin{itemize}
+    \item \textbf{Encoder}
+    \begin{itemize}
+        \item A Long Short-Term Memory network that reads the input sequence.
+        \item Outputs a fixed-length vector which is the latent space representation.
+        \item This latent vector captures rhythm structure, relationships between drums, and pattern style.
+    \end{itemize}
+    \item \textbf{Decoder}
+    \begin{itemize}
+        \item Takes the latent vector as input.
+        \item Reconstructs the original sequence over time using another LSTM.
+    \end{itemize}
+\end{itemize}
+The latent space dimension was set to 32, meaning each drum sequence is compressed into a 32-dimensional vector.
+
+\subsubsection{Training Process}
+The model was trained using:
+\begin{itemize}
+    \item BCE loss
+    \item Adam optimizer
+\end{itemize}
+The goal was to minimize the difference between the original sequence $X$ and reconstructed sequence $\hat{X}$. Training was performed for 200 epochs using GPU acceleration.
+
+\subsubsection{Generation Process}
+After training, new drum patterns were generated by:
+\begin{enumerate}
+    \item Sampling a random latent vector $z$
+    \item Passing it through the decoder
+    \item Converting the output into a piano-roll
+    \item Converting the piano-roll into MIDI format
+\end{enumerate}
+
+\subsubsection{Observations}
+The LSTM Autoencoder successfully learned:
+\begin{itemize}
+    \item basic rhythmic structure
+    \item timing of drum hits
+\end{itemize}
+However, it had major limitations:
+\begin{itemize}
+    \item very low diversity
+    \item very high repetition
+    \item generated patterns were almost the same
+\end{itemize}
+This concludes that the model memorizes patterns rather than generating new variations.
+
+\subsection{Task 2: LSTM Variational Autoencoder (VAE)}
+To improve the generation quality, the LSTM Autoencoder was extended to a Variational Autoencoder.
+
+\subsubsection{Key Modification}
+Instead of producing a single latent vector, the encoder outputs:
+\begin{itemize}
+    \item mean $\mu$
+    \item variance $\sigma$
+\end{itemize}
+A latent vector is then sampled using:
+\[
+z = \mu + \sigma \cdot \epsilon, \qquad \epsilon \sim N(0, I)
+\]
+This allows the model to learn a probabilistic latent space.
+
+\subsubsection{Loss Function}
+The total loss consists of two parts:
+\begin{enumerate}
+    \item {Reconstruction Loss}: the usual BCE loss.
+    \item {KL Divergence Loss}: the Kullback-Leibler divergence, which helps generate a smooth latent space and enforces a more structured latent space for better generation.
+\end{enumerate}
+The total loss is:
+\[
+L = L_{recon} + \beta L_{KL}
+\]
+where $\beta = 0.005$.
+
+\subsubsection{Generation Process}
+New drum patterns are generated by:
+\begin{enumerate}
+    \item Sampling from a standard normal distribution: $z \sim N(0, I)$
+    \item Passing $z$ through the decoder
+    \item Converting output to piano-roll
+    \item Applying thresholding
+    \item Exporting as MIDI
+\end{enumerate}
+
+\subsubsection{Improvements Over Task 1}
+Compared to the Autoencoder, the VAE model enforces learning via a probability distribution instead of a fixed latent vector. This enables it to:
+\begin{itemize}
+    \item produce more diverse drum patterns
+    \item reduce overall repetition
+    \item explore different rhythmic combinations
+\end{itemize}
+However, some limitations remained:
+\begin{itemize}
+    \item some patterns were still repetitive
+    \item some samples were too short or silent
+\end{itemize}
+
+\subsection{Task 3: Transformer-Based Music Generation}
+
+\subsubsection{Transformer Model Structure}
+For Task 3, a decoder-only Transformer was implemented for autoregressive drum generation. The purpose of this model was to predict the next drum token using all previous tokens in the sequence. In this way, the model learns the probability of the full sequence as the product of conditional next-token probabilities.
+
+The Transformer model consists of several important components:
+\begin{itemize}
+    \item \textbf{Token Embedding Layer:} This layer converts each integer token into a dense vector representation. Instead of using raw token IDs directly, the model learns a numerical representation for each possible drum-step pattern.
+    \item \textbf{Positional Embedding Layer:} Unlike LSTM-based models, the Transformer does not automatically understand sequence order. Therefore, positional information must be added explicitly so that the model can identify whether a token appears early or later in the sequence.
+    \item \textbf{Masked Self-Attention Layers:} These layers allow each token to attend only to the tokens that came before it. Future tokens are masked so that the model cannot see the correct answer during prediction.
+    \item \textbf{Feed-Forward Layers and Output Projection Layer:} After the attention mechanism, feed-forward layers are applied to further process the learned information. Finally, an output projection layer produces a probability distribution over the token vocabulary, from which the next token is selected during generation.
+\end{itemize}
+In this project, the Transformer was trained on fixed-length token sequences and used as a next-step predictor rather than as a full-sequence reconstructor.
+
+\subsubsection{Training Objective}
+The Transformer was trained using autoregressive learning. Let the token sequence be written as
+\[
+X = \{x_1, x_2, \dots, x_T\}
+\]
+The model learns the probability of the sequence by predicting each token from all previous tokens.
+
+During training, the input sequence was shifted by one position. In simple terms, the model was given all previous drum tokens and asked to predict the next token at every time step. This is different from the Autoencoder and VAE models, where the main objective was to reconstruct the whole sequence from a latent representation.
+
+The loss function used for Task 3 was the standard {cross-entropy loss} for next-token prediction. The model was optimized using the {Adam optimizer}. A train-validation-test split was used before training. The Transformer was then trained for multiple epochs while monitoring both validation loss and validation perplexity. This helped verify that the model was learning useful sequential drum patterns rather than only memorizing the training data.
+
+\subsubsection\textbf{Perplexity Evaluation}
+Perplexity was used as the main quantitative evaluation metric for Task 3, as required in the project guidelines. Perplexity measures how well the model predicts the next token in the sequence. A lower perplexity suggests that the model is more accurate when predicting future drum-step patterns.
+
+During training, both the {loss curve} and the {perplexity curve} were plotted for the training and validation sets. In addition, a final {test perplexity} value was reported after training was completed. This provided an objective numerical measure of Transformer performance.
+
+Perplexity was an appropriate metric in this task because the Transformer is a next-token prediction model. Unlike reconstruction loss alone, perplexity gives a clearer idea of how well the model understands the sequential structure of the music.
+
+\subsubsection{Music Generation Process}
+After training, new drum sequences were generated autoregressively. The generation process began with a beginning-of-sequence token. The Transformer then predicted the probability distribution of the next token. One token was selected from this distribution, appended to the sequence, and then fed back into the model. This process was repeated step by step until a long drum sequence was generated.
+
+To improve the quality of the generated samples, {controlled stochastic sampling} was used instead of simple greedy decoding. In particular, the following two strategies were applied:
+\begin{itemize}
+    \item \textbf{Temperature Sampling:} Temperature controls how random or conservative the token selection is. A lower temperature makes the model more stable and predictable, producing more coherent and filled tunes.
+    \item \textbf{Top-k Sampling:} Top-k sampling restricts the next-token choice to the $k$ most likely candidates. This prevents the model from selecting extremely unlikely tokens while still preserving some variation.
+\end{itemize}
+Practically I tested the model using various T and K values and found that:
+\begin{itemize}
+    \item High temperature and high $k$ lead to more variation, but less coherence and sometimes broken outputs.
+    \item Low temperature and low $k$ lead to more coherent outputs, but can become repetitive.
+    \item Balanced temperature and $k$ keep both variation and musical coherence in better balance.
+\end{itemize}
+After token generation, the 1D token sequence was converted back into the original 2D drum array format. The generated drum array was then exported into MIDI format so that the outputs could be listened to and evaluated.
+
+\subsubsection{Why Task 3 Performed Better}
+Task 3 produced better results than Task 1 and Task 2 mainly because it learned sequence progression directly instead of only reconstructing a compressed latent representation.
+
+In the Autoencoder and VAE models, the output was reconstructed as probabilities and later converted into drum hits using thresholding. This made the final generation highly sensitive to threshold values, and many outputs became repetitive, weak, or near-silent.
+
+In contrast, the Transformer worked directly with discrete tokens. Each token represented a full drum-step combination, so the model learned more realistic drum-state transitions in a natural sequential manner.
+
+Another major advantage was the autoregressive nature of the Transformer. Instead of trying to reconstruct the entire sequence at once, the model learned what drum state should come next based on the previous pattern history. This made the generated outputs sound more continuous, more energetic, and more varied than the earlier AE and VAE models.
+
+\subsubsection{Final Observation}
+Task 3 was the strongest model in this work. Compared to the LSTM Autoencoder and LSTM VAE, the Transformer was better at modeling long-range sequence structure and generating more realistic drum compositions.
+
+Although some generated samples still showed repetition, the overall musical quality and rhythmic variation were noticeably improved. The final Transformer model successfully produced long symbolic drum sequences, and the best 10 generated MIDI outputs were selected as the final Task 3 results.
+
+This shows that token-based autoregressive modeling is more suitable for long-horizon symbolic music generation than direct reconstruction-based latent models, especially when the goal is to generate coherent rhythmic patterns over time.
+
+\subsection{Task 4: Reinforcement Learning for Human Preference Tuning}
+Task 4 was built on top of the final Transformer model from Task 3, since that model had already been selected as the strongest generator in the project. In Task 3, the Transformer learned how to generate drum patterns step by step by predicting the next token from the previous tokens. Compared to the Autoencoder and VAE, it produced outputs that were more energetic, more varied, and more realistic.
+
+The main purpose of Task 4 was to check whether this already strong Transformer model could be improved further using human preference information. In the earlier tasks, the models were trained only from the training data itself. That means the model learned what patterns were likely to occur, but it did not directly learn what kind of generated output people actually prefer to hear. Task 4 tried to add this missing part by introducing human feedback into the generation process.
+
+\subsubsection{Model Structure}
+The Task 4 system was based on three main parts:
+\begin{itemize}
+    \item \textbf{Pretrained Generator:} The Transformer from Task 3 was used as the starting generator. This model already knew how to produce symbolic drum-token sequences and was treated as the base policy for fine-tuning.
+    \item \textbf{Reward Scoring Function / Reward Model:} Human listeners rated selected generated drum samples. These ratings were then converted into a numerical reward score.
+    \item \textbf{RLHF Fine-Tuning Stage:} The generator was then fine-tuned using this reward information so that future generations would move toward outputs that receive better human scores.
+\end{itemize}
+
+\subsubsection{Methodology}
+The RLHF process followed a simple preference-based fine-tuning pipeline.
+
+First, the pretrained Transformer generated a symbolic drum sequence:
+\[
+X_{gen} \sim p_{\theta}(X)
+\]
+This generated sample was then evaluated using a human-based reward:
+\[
+r = \text{HumanScore}(X_{gen})
+\]
+The overall goal of Task 4 was to maximize the expected human reward:
+\[
+J(\theta) = \mathbb{E}[r(X_{gen})]
+\]
+To update the model, the policy-gradient idea was used:
+\[
+\nabla_{\theta}J(\theta) = \mathbb{E}[r \nabla_{\theta} \log p_{\theta}(X)]
+\]
+This means that if a generated drum sequence receives a higher reward, the model should increase the probability of generating similar sequences in the future. If the reward is low, the model should reduce the tendency to generate that kind of output.
+
+In practice, the model was not trained from the beginning again. Instead, the already trained Transformer checkpoint from Task 3 was used as the starting point. This was important because Task 3 had already shown that the Transformer was the most suitable model for symbolic drum generation in this project. So, Task 4 was not designed to replace the Transformer, but to refine it using preference information.
+
+The human ratings were first collected for selected generated samples. These ratings were then cleaned and aggregated into a reward score for each sample. After that, the reward signal was used during fine-tuning so that the model could shift toward outputs that better matched human preference.
+
+\subsubsection{Output and Comparison}
+After fine-tuning, the RLHF-tuned Transformer generated a new set of drum samples. These new outputs were then compared with the original Transformer outputs from Task 3.
+
+The comparison was carried out using symbolic metrics such as density, diversity, and repetition. A reward-based comparison was also considered, since the whole purpose of Task 4 was to move the generator toward outputs that better matched human preference.
+
+This stage was important because it extended the project from standard sequence modeling to \textbf{preference-aware generation}. In the earlier tasks, the models only learned from the training data distribution. In Task 4, the model was additionally guided by human judgment.
+
+\section{Results and Analysis}
+The generated outputs were evaluated using three main symbolic metrics:
+\begin{itemize}
+    \item \textbf{Density}: the average number of drum hits present
+    \item \textbf{Diversity}: how much variation exists across generated patterns
+    \item \textbf{Repetition}: how often patterns repeat
+\end{itemize}
+For Task 3, \textbf{perplexity} was also reported, since the Transformer was trained as an autoregressive next-token prediction model.
+
+\subsection{Quantitative Results}
+\begin{table}[h]
+\centering
+\caption{Comparison of Real Data and Generated Outputs}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Model} & \textbf{Density} & \textbf{Diversity} & \textbf{Repetition} & \textbf{Perplexity} \\
+\hline
+Real Dataset            & 0.1756   & 0.0938   & 0.7032   & -- \\
+LSTM Autoencoder        & 0.1701   & 0.0148   & 0.9827   & -- \\
+LSTM VAE                & 0.1766   & 0.0323   & 0.9381   & -- \\
+Transformer             & 0.172201 & 0.220009 & 0.031250 & 3.3586 \\
+RLHF-Tuned Transformer  & 0.125391 & 0.125723 & 0.078125 & -- \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Analysis of Task 1 and Task 2}
+The LSTM Autoencoder was able to learn the general drum density of the dataset, since its density value of 0.1701 was close to the real dataset density of 0.1756. However, the diversity score was extremely low and the repetition score was extremely high. This shows that the Autoencoder mostly memorized and reproduced similar drum patterns instead of generating meaningful variations.
+
+The LSTM VAE improved upon the Autoencoder. Its density value of 0.1766 was even closer to the real dataset, and its diversity increased from 0.0148 to 0.0323. At the same time, repetition decreased from 0.9827 to 0.9381. This indicates that the VAE was able to produce more variation than the Autoencoder. However, the generated outputs were still quite repetitive, and the improvement was only moderate.
+
+\subsection{Analysis of Task 3}
+Task 3 produced the strongest results among all implemented neural models. The Transformer achieved a test perplexity of 3.3586, which indicates that it learned the sequential structure of the drum tokens effectively.
+
+Compared to Task 1 and Task 2, the Transformer generated outputs that were more energetic, more varied, and less repetitive. Its density value was slightly higher than the real dataset, meaning the generated patterns were somewhat more active. The diversity and repetition scores also show a major improvement compared to the Autoencoder and VAE.
+
+This improvement happened because the Transformer modeled music as a next-token prediction problem instead of a reconstruction problem. In the Autoencoder and VAE, the model tried to reconstruct the whole sequence and the final output depended heavily on thresholding. In contrast, the Transformer directly predicted discrete drum-step tokens, which allowed it to capture rhythmic transitions more naturally.
+
+Subjective listening also confirmed that the Transformer outputs sounded louder, more vibrant, and more musically interesting than the previous models. Therefore, Task 3 was selected as the best-performing generation model in this project.
+
+\subsection{Analysis of Task 4}
+Task 4 added an RLHF-style tuning stage on top of the Transformer model. The goal was to see whether human preference information could improve the already strong Task 3 generator.
+
+The RLHF-tuned Transformer showed a mixed result. On the positive side, it successfully introduced preference-based fine-tuning and produced a new set of outputs that were different from the original Transformer outputs. This means the Task 4 pipeline worked as intended at the implementation level. The model was able to move according to the reward objective instead of only following next-token prediction.
+
+However, in the final comparison, the original Transformer still performed better overall than the RLHF-tuned Transformer. The RLHF model had a lower density than the Transformer baseline, meaning the RLHF outputs became more sparse and contained fewer drum hits on average. Its diversity also dropped, while repetition increased. So, even though Task 4 was able to apply human-preference tuning, it did not improve the overall musical quality beyond the original Transformer.
+
+There are several reasons for this result. First, the Transformer from Task 3 was already a strong model, so improving it further was more difficult than improving the weaker AE or VAE models. Second, the amount of human feedback used in Task 4 was limited, so the reward signal was not rich enough to fully describe musical quality. Third, once the model started optimizing toward the reward objective, some important musical properties such as density, variation, and rhythmic balance were reduced.
+
+Therefore, the honest conclusion of Task 4 is that the RLHF-style pipeline was implemented successfully, but the final tuned model did not outperform the original Transformer. The Transformer remained the strongest generation model because it produced denser, more diverse, and more musically convincing outputs. 
+
+\subsection{Table for comparasion of Graphs}
+\begin{table}[h]
+\centering
+\caption{Training Performance Summary}
+\begin{tabular}{lccc}
+\hline
+Model & Final Loss & Stability & Convergence Speed \\
+\hline
+LSTM Autoencoder & 0.133 & Very Stable & Fast \\
+LSTM VAE (Recon) & 0.288 & Stable & Moderate \\
+LSTM VAE (KL) & 0.99 & Increasing & Slow \\
+Transformer (Train) & 1.06 & Stable & Moderate \\
+Transformer (Validation) & 1.09 & Stable & Moderate \\
+\hline
+\end{tabular}
+\end{table}
+The training performance shows that the LSTM Autoencoder converges quickly but leads to overfitting, resulting in repetitive outputs. The VAE introduces a trade-off between reconstruction and KL divergence, improving diversity. The Transformer model demonstrates stable convergence with closely aligned training and validation losses, indicating better generalization.
+
+\section{Conclusion}
+In this project, four different stages of symbolic drum generation were explored using MIDI data. Task 1 showed that an LSTM Autoencoder can learn basic rhythmic structure, but it suffers from high repetition and very low diversity. Task 2 improved this by introducing a probabilistic latent space through a Variational Autoencoder, which slightly improved diversity and reduced repetition.
+
+Task 3 was the strongest stage of the project. By converting drum patterns into discrete tokens and using an autoregressive Transformer, the model generated longer, more coherent, more diverse, and more energetic drum patterns than the previous models. Task 4 successfully implemented an RLHF-style fine-tuning pipeline using human preference information, but the final tuned model did not outperform the original Transformer due to limited feedback data and trade-offs in musical quality.
+
+Overall, the project shows that token-based autoregressive modeling is more effective for long-range symbolic drum generation than direct reconstruction-based latent models. Future work can improve this further by increasing the amount of human feedback, improving reward modeling, and testing larger Transformer architectures.
+
+\begin{thebibliography}{00}
+\bibitem{b1} D. Eck and J. Schmidhuber, ``Finding temporal structure in music: Blues improvisation with LSTM recurrent networks,'' in \textit{Proc. IEEE Workshop on Neural Networks for Signal Processing}, 2002.
+\bibitem{b2} D. P. Kingma and M. Welling, ``Auto-Encoding Variational Bayes,'' \textit{arXiv preprint arXiv:1312.6114}, 2013.
+\bibitem{b3} A. Vaswani \textit{et al.}, ``Attention is all you need,'' in \textit{Advances in Neural Information Processing Systems}, 2017.
+\end{thebibliography}
+
+\end{document}

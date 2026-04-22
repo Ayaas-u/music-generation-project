@@ -1,0 +1,26 @@
+{
+  "model_type": "ridge_regression",
+  "inputs": [
+    "density",
+    "empty_step_ratio",
+    "repetition_16",
+    "kick_rate",
+    "snare_rate",
+    "hihat_rate",
+    "tom_rate",
+    "crash_rate",
+    "ride_rate",
+    "simultaneous_hits_ratio",
+    "pattern_change_rate",
+    "strong_beat_density",
+    "offbeat_density"
+  ],
+  "target": "z-scored mean participant-normalized reward",
+  "l2_regularization": 3.0,
+  "num_rated_samples": 10,
+  "train_rmse": 0.7281278074647322,
+  "loo_rmse": 1.7504257197749489,
+  "train_correlation": 0.6921173363903286,
+  "loo_correlation": -0.3097981972797184,
+  "reward_model_path": "data\\reward_model.npz"
+}

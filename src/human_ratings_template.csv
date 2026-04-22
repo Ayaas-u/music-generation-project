@@ -1,0 +1,4 @@
+participant_id,sample_id,groove_quality,coherence,variety,comment
+2026-04-09_16:50:11,transformer_sample_1,3,4,3,Good groove
+2026-04-09_17:54:55,transformer_sample_1,3,3,2,Too repetitive
+2026-04-09_16:50:11,transformer_sample_2,4,3,3,Solid beat
