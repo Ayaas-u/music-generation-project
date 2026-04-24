@@ -20,7 +20,7 @@ The work uses a **6-channel drum representation**:
 - Crash
 - Ride
 
-The assignment requires a public MIDI dataset, preprocessing and train-test split, baselines, evaluation metrics, generated samples, and a final report, all of which are covered in this project. :contentReference[oaicite:0]{index=0}
+The assignment requires a public MIDI dataset, preprocessing and train-test split, baselines, evaluation metrics, generated samples, and a final report, all of which are covered in this project.
 
 ## Project Motivation
 
