@@ -65,12 +65,12 @@ An extension of the autoencoder with:
 - reparameterization trick
 - KL divergence regularization
 
-This improves variation compared to the basic autoencoder. :contentReference[oaicite:2]{index=2}
+This improves variation compared to the basic autoencoder. 
 
 ### Task 3 — Transformer
 A decoder-only Transformer trained on tokenized drum-step patterns.
 
-Each timestep is encoded as a discrete token representing the 6 drum channels, and generation is performed autoregressively with temperature and top-k sampling. This became the strongest model in the project because token-based generation gave more lively and varied outputs than thresholded AE/VAE reconstruction. :contentReference[oaicite:3]{index=3}
+Each timestep is encoded as a discrete token representing the 6 drum channels, and generation is performed autoregressively with temperature and top-k sampling. This became the strongest model in the project because token-based generation gave more lively and varied outputs than thresholded AE/VAE reconstruction. 
 
 ### Task 4 — RLHF-style Preference Tuning
 A lightweight reinforcement-learning-from-human-feedback style pipeline built around:
@@ -88,8 +88,7 @@ To provide meaningful comparison, the project also includes:
 - **Random drum generation baseline**
 - **Markov chain baseline**
 
-These help contextualize the performance of the neural models. :contentReference[oaicite:5]{index=5}
-
+These help contextualize the performance of the neural models. 
 ## Evaluation
 
 The main evaluation metrics used throughout the project are:
@@ -105,7 +104,7 @@ These metrics are used to compare:
 - LSTM Autoencoder
 - LSTM VAE
 - Transformer
-- RLHF-tuned Transformer :contentReference[oaicite:6]{index=6}
+- RLHF-tuned Transformer 
 
 For this drum-focused version:
 - `metrics.py` contains the core symbolic metrics
