@@ -39,7 +39,7 @@ Using the Groove MIDI dataset, the project investigates how progressively strong
 - **Type:** Public MIDI dataset
 - **Representation:** symbolic 6-channel drum sequences
 
-The project uses Groove as its public MIDI source and adapts the assignment into a groove-focused symbolic drum-generation setup. :contentReference[oaicite:1]{index=1}
+The project uses Groove as its public MIDI source and adapts the assignment into a groove-focused symbolic drum-generation setup. 
 
 ## Pipeline Overview
 
@@ -80,7 +80,7 @@ A lightweight reinforcement-learning-from-human-feedback style pipeline built ar
 - tuned sample generation
 - before-vs-after comparison
 
-This stage follows the assignment’s requirement for preference-based tuning in a compact educational setup. :contentReference[oaicite:4]{index=4}
+This stage follows the assignment’s requirement for preference-based tuning in a compact educational setup.
 
 ## Baselines
 
